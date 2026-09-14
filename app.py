@@ -37,7 +37,7 @@ price=st.sidebar.number_input(T("Monthly subscription per customer (S/)","Suscri
 fixed=st.sidebar.number_input(T("Monthly fixed costs (S/)","Costos fijos mensuales (S/)"),0.0,100000.0,400.0,50.0)
 variable=st.sidebar.number_input(T("Variable cost per customer (S/)","Costo variable por cliente (S/)"),0.0,1000.0,10.0,1.0)
 
-# ---------- Scenario: controls ALL stress values ----------
+# ---------- Scenario ----------
 st.sidebar.header(T("Scenario","Escenario"))
 scenario_names=[T("Normal","Normal"),T("Moderate Crisis","Crisis Moderada"),T("Severe Crisis","Crisis Severa"),T("Custom","Personalizado")]
 scenario=st.sidebar.selectbox(T("Select a scenario","Selecciona un escenario"),scenario_names,index=1)
@@ -49,34 +49,27 @@ presets={
 }
 key={scenario_names[0]:"normal",scenario_names[1]:"moderate",scenario_names[2]:"severe",scenario_names[3]:"custom"}[scenario]
 
+# The selected scenario now provides starting values, but EVERY stress variable remains editable.
+def scenario_default(name, field, custom_default):
+    if key == "custom":
+        return custom_default
+    return presets[key][field]
+
+# ---------- External stress ----------
 st.sidebar.header(T("2. External stress","2. Estrés externo"))
-if key=="custom":
-    demand=st.sidebar.slider(T("Demand decrease (%)","Disminución de la demanda (%)"),0,90,20,5)
-    competitor=st.sidebar.slider(T("Competitor pressure (%)","Presión de competidores (%)"),0,80,10,5)
-    inflation=st.sidebar.slider(T("Inflation / input-cost pressure (%)","Inflación / presión de costos (%)"),0,80,10,5)
-    connectivity=st.sidebar.slider(T("Connectivity disruption (%)","Interrupción de conectividad (%)"),0,100,20,5)
-else:
-    q=presets[key]
-    demand,competitor,inflation,connectivity=q["d"],q["cmp"],q["inf"],q["conn"]
-    st.sidebar.slider(T("Demand decrease (%)","Disminución de la demanda (%)"),0,90,demand,5,disabled=True)
-    st.sidebar.slider(T("Competitor pressure (%)","Presión de competidores (%)"),0,80,competitor,5,disabled=True)
-    st.sidebar.slider(T("Inflation / input-cost pressure (%)","Inflación / presión de costos (%)"),0,80,inflation,5,disabled=True)
-    st.sidebar.slider(T("Connectivity disruption (%)","Interrupción de conectividad (%)"),0,100,connectivity,5,disabled=True)
+demand=st.sidebar.slider(T("Demand decrease (%)","Disminución de la demanda (%)"),0,90,scenario_default("d","d",20),5,key=f"demand_{key}")
+competitor=st.sidebar.slider(T("Competitor pressure (%)","Presión de competidores (%)"),0,80,scenario_default("cmp","cmp",10),5,key=f"competitor_{key}")
+inflation=st.sidebar.slider(T("Inflation / input-cost pressure (%)","Inflación / presión de costos (%)"),0,80,scenario_default("inf","inf",10),5,key=f"inflation_{key}")
+connectivity=st.sidebar.slider(T("Connectivity disruption (%)","Interrupción de conectividad (%)"),0,100,scenario_default("conn","conn",20),5,key=f"connectivity_{key}")
 
+# ---------- Internal stress ----------
 st.sidebar.header(T("3. Internal stress","3. Estrés interno"))
-if key=="custom":
-    operating=st.sidebar.slider(T("Operating-cost increase (%)","Aumento de costos operativos (%)"),0,100,15,5)
-    technical=st.sidebar.slider(T("Technical failure impact (%)","Impacto de fallas técnicas (%)"),0,80,10,5)
-    productivity=st.sidebar.slider(T("Productivity loss (%)","Pérdida de productividad (%)"),0,80,10,5)
-    support=st.sidebar.slider(T("Support / maintenance increase (%)","Aumento de soporte / mantenimiento (%)"),0,80,10,5)
-else:
-    q=presets[key]
-    operating,technical,productivity,support=q["op"],q["tech"],q["prod"],q["sup"]
-    st.sidebar.slider(T("Operating-cost increase (%)","Aumento de costos operativos (%)"),0,100,operating,5,disabled=True)
-    st.sidebar.slider(T("Technical failure impact (%)","Impacto de fallas técnicas (%)"),0,80,technical,5,disabled=True)
-    st.sidebar.slider(T("Productivity loss (%)","Pérdida de productividad (%)"),0,80,productivity,5,disabled=True)
-    st.sidebar.slider(T("Support / maintenance increase (%)","Aumento de soporte / mantenimiento (%)"),0,80,support,5,disabled=True)
+operating=st.sidebar.slider(T("Operating-cost increase (%)","Aumento de costos operativos (%)"),0,100,scenario_default("op","op",15),5,key=f"operating_{key}")
+technical=st.sidebar.slider(T("Technical failure impact (%)","Impacto de fallas técnicas (%)"),0,80,scenario_default("tech","tech",10),5,key=f"technical_{key}")
+productivity=st.sidebar.slider(T("Productivity loss (%)","Pérdida de productividad (%)"),0,80,scenario_default("prod","prod",10),5,key=f"productivity_{key}")
+support=st.sidebar.slider(T("Support / maintenance increase (%)","Aumento de soporte / mantenimiento (%)"),0,80,scenario_default("sup","sup",10),5,key=f"support_{key}")
 
+# ---------- Cloud-Edge resilience assumption ----------
 st.sidebar.header(T("4. Cloud-Edge resilience assumption","4. Supuesto de resiliencia Cloud-Edge"))
 edge=st.sidebar.slider(T("Connectivity impact reduction from Edge (%)","Reducción del impacto de conectividad por Edge (%)"),0,100,70,5)
 
@@ -86,7 +79,7 @@ sim=simulate(customers,price,fixed,variable,demand,competitor,inflation,connecti
 st.title("☁️ MicroCloud-Edge")
 st.subheader(T("Business Resilience Simulator","Simulador de Resiliencia del Modelo de Negocio"))
 st.caption(T("Session 2 — Interactive simulation of internal and external business stress. Technology selected: Cloud and Edge Computing.","Sesión 2 — Simulación interactiva del estrés interno y externo del negocio. Tecnología seleccionada: Computación en la Nube y en el Borde."))
-st.info(f"**{T('Active scenario','Escenario activo')}:** {scenario}. {T('All stress values shown in the sidebar correspond to this scenario.','Todos los valores de estrés mostrados en la barra lateral corresponden a este escenario.')}")
+st.info(f"**{T('Active scenario','Escenario activo')}:** {scenario}. {T('The scenario provides starting values, but all stress parameters can be modified manually.','El escenario proporciona valores iniciales, pero todos los parámetros de estrés pueden modificarse manualmente.')}")
 
 st.markdown(f"## {T('Simulation result','Resultado de la simulación')}")
 a,b,c,d=st.columns(4)
